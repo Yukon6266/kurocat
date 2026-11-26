@@ -161,7 +161,7 @@ fn build_tray_menu(
         None::<&str>,
     )?;
 
-    let obs_port = if initial.obs_port == 0 { 27421 } else { initial.obs_port };
+    let obs_port = if initial.obs_port == 0 { crate::config::DEFAULT_OBS_PORT } else { initial.obs_port };
     let obs_toggle = CheckMenuItem::with_id(
         app,
         "obs_toggle",
@@ -199,11 +199,15 @@ fn build_tray_menu(
     let breed_tuxedo = MenuItem::with_id(app, "breed_tuxedo", t(lang, "breeds.tuxedo"), true, None::<&str>)?;
     let breed_siamese = MenuItem::with_id(app, "breed_siamese", t(lang, "breeds.siamese"), true, None::<&str>)?;
     let breed_dafeiyu = MenuItem::with_id(app, "breed_dafeiyu", t(lang, "breeds.dafeiyu"), true, None::<&str>)?;
+    let breed_nailong = MenuItem::with_id(app, "breed_nailong", t(lang, "breeds.nailong"), true, None::<&str>)?;
+    let breed_naiwa = MenuItem::with_id(app, "breed_naiwa", t(lang, "breeds.naiwa"), true, None::<&str>)?;
     let breed_menu = Submenu::with_items(
         app,
         t(lang, "tray.breed_menu"),
         true,
         &[
+            &breed_naiwa,
+            &breed_nailong,
             &breed_black,
             &breed_ragdoll,
             &breed_orange,
@@ -341,17 +345,6 @@ fn build_tray_menu(
             ],
         )?
     };
-    let check_update = MenuItem::with_id(
-        app,
-        "check_update",
-        tf(
-            lang,
-            "tray.check_update",
-            &[("ver", crate::updater::CURRENT_VERSION.to_string())],
-        ),
-        true,
-        None::<&str>,
-    )?;
     let quit = MenuItem::with_id(app, "quit", t(lang, "tray.quit"), true, None::<&str>)?;
 
     let sep1 = PredefinedMenuItem::separator(app)?;
@@ -382,7 +375,6 @@ fn build_tray_menu(
             &autostart,
             &obs_menu,
             &mcp_toggle,
-            &check_update,
             &sep2,
             &quit,
         ],
@@ -412,7 +404,6 @@ fn build_tray_menu(
             &autostart,
             &obs_menu,
             &mcp_toggle,
-            &check_update,
             &sep2,
             &quit,
         ],
@@ -440,7 +431,6 @@ fn build_tray_menu(
             &autostart,
             &obs_menu,
             &mcp_toggle,
-            &check_update,
             &sep2,
             &quit,
         ],
@@ -520,7 +510,12 @@ pub fn setup_tray(app: &AppHandle, initial: &AppSettings) -> tauri::Result<()> {
         *guard = Some(handles);
     }
 
-    let icon = Image::from_bytes(include_bytes!("../icons/tray-icon.png"))?;
+    let icon: &[u8] = if cfg!(feature = "naiwa") {
+        include_bytes!("../icons/naiwa-tray.png")
+    } else {
+        include_bytes!("../icons/nailong-tray.png")
+    };
+    let icon = Image::from_bytes(icon)?;
 
     // Keep tray checkmarks synchronized when settings change from right-click menu, toast, or MCP.
     app.listen("kuro-settings", move |ev| {
@@ -697,7 +692,7 @@ pub fn setup_tray(app: &AppHandle, initial: &AppSettings) -> tauri::Result<()> {
                             s.obs_hide_pet = false;
                         }
                         if s.obs_port == 0 {
-                            s.obs_port = 27421;
+                            s.obs_port = crate::config::DEFAULT_OBS_PORT;
                         }
                         crate::config::save_settings(&s);
                         (s.obs_enabled, s.obs_port, s.clone())
@@ -717,7 +712,7 @@ pub fn setup_tray(app: &AppHandle, initial: &AppSettings) -> tauri::Result<()> {
                             s.obs_enabled = true;
                         }
                         if s.obs_port == 0 {
-                            s.obs_port = 27421;
+                            s.obs_port = crate::config::DEFAULT_OBS_PORT;
                         }
                         s.obs_hide_pet = next_hide;
                         crate::config::save_settings(&s);
@@ -734,7 +729,7 @@ pub fn setup_tray(app: &AppHandle, initial: &AppSettings) -> tauri::Result<()> {
                     let (port, enabled_changed, updated) = {
                         let mut s = state.settings.lock().unwrap();
                         if s.obs_port == 0 {
-                            s.obs_port = 27421;
+                            s.obs_port = crate::config::DEFAULT_OBS_PORT;
                         }
                         let changed = !s.obs_enabled;
                         if changed {
@@ -764,6 +759,8 @@ pub fn setup_tray(app: &AppHandle, initial: &AppSettings) -> tauri::Result<()> {
                     sync_checkmarks(&updated);
                     let _ = app.emit("kuro-settings", updated);
                 }
+                "breed_naiwa" => apply_breed_and_save(app, "naiwa"),
+                "breed_nailong" => apply_breed_and_save(app, "nailong"),
                 "breed_black" => apply_breed_and_save(app, "black"),
                 "breed_ragdoll" => apply_breed_and_save(app, "ragdoll"),
                 "breed_orange" => apply_breed_and_save(app, "orange-tabby"),
@@ -819,52 +816,6 @@ pub fn setup_tray(app: &AppHandle, initial: &AppSettings) -> tauri::Result<()> {
                 #[cfg(target_os = "macos")]
                 "mac_open_accessibility" => {
                     crate::input_hook::macos_hook::open_macos_privacy_pane("accessibility");
-                }
-                "check_update" => {
-                    let app_clone = app.clone();
-                    let lang = state.settings.lock().unwrap().language.clone();
-                    set_pet_visible(app, true);
-                    let _ = app_clone.emit(
-                        "kuro-update-status",
-                        crate::updater::UpdateProgressEvent {
-                            stage: "checking".to_string(),
-                            message: t(&lang, "toast.checking"),
-                            info: None,
-                        },
-                    );
-                    std::thread::spawn(move || match crate::updater::check_latest_update() {
-                        Ok(info) => {
-                            let (stage, msg) = if info.has_update {
-                                (
-                                    "available",
-                                    tf(&lang, "toast.available", &[("ver", info.latest_version.clone())]),
-                                )
-                            } else {
-                                (
-                                    "up_to_date",
-                                    tf(&lang, "toast.up_to_date", &[("ver", info.current_version.clone())]),
-                                )
-                            };
-                            let _ = app_clone.emit(
-                                "kuro-update-status",
-                                crate::updater::UpdateProgressEvent {
-                                    stage: stage.to_string(),
-                                    message: msg,
-                                    info: Some(info),
-                                },
-                            );
-                        }
-                        Err(err) => {
-                            let _ = app_clone.emit(
-                                "kuro-update-status",
-                                crate::updater::UpdateProgressEvent {
-                                    stage: "error".to_string(),
-                                    message: err,
-                                    info: None,
-                                },
-                            );
-                        }
-                    });
                 }
                 "reset_pos" => reset_window_position(app),
                 "quit" => {

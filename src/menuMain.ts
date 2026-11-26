@@ -2,7 +2,7 @@ import './style.css';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { DEFAULT_TAIL_KEY_IDS, type KeyboardOrientation, type TailKeyMode } from './catEngine';
-import { DEFAULT_BUILTIN_CATS, type CatSkinConfig } from './catSkins';
+import { DEFAULT_BUILTIN_CATS, DEFAULT_DESKTOP_PET, is2DOnlyBreed, type CatSkinConfig } from './catSkins';
 import type { KeyboardLayoutId } from './keyboardLayout';
 import {
   applyDomTranslations,
@@ -70,16 +70,16 @@ let settings: AppSettings = {
   showKeyBubbles: true,
   soundEnabled: true,
   autostart: false,
-  catBreed: 'black',
-  mcpEnabled: true,
-  mcpPort: 27420,
+  catBreed: DEFAULT_DESKTOP_PET,
+  mcpEnabled: false,
+  mcpPort: DEFAULT_DESKTOP_PET === 'naiwa' ? 27440 : 27430,
   keyboardLayout: '65',
   keyboardOrientation: 'cat',
   privacyPasswordGuard: true,
   tailKeyMode: 'smart',
   tailKeyIds: [...DEFAULT_TAIL_KEY_IDS],
   obsEnabled: false,
-  obsPort: 27421,
+  obsPort: DEFAULT_DESKTOP_PET === 'naiwa' ? 27441 : 27431,
   obsHidePet: false,
   renderMode: '3d',
   collarColor: 'none',
@@ -214,7 +214,7 @@ function syncUI(): void {
   }
   const obsHint = document.getElementById('obs-copy-hint');
   if (obsHint && !obsHint.classList.contains('copied')) {
-    obsHint.textContent = settings.obsEnabled ? `:${settings.obsPort || 27421}` : t('menu.obs_hint');
+    obsHint.textContent = settings.obsEnabled ? `:${settings.obsPort || 27431}` : t('menu.obs_hint');
   }
   const mcpHint = document.getElementById('mcp-copy-hint');
   if (mcpHint && !mcpHint.classList.contains('copied')) {
@@ -284,11 +284,11 @@ function syncUI(): void {
   });
   const renderModeRowEl = document.getElementById('render-mode-row');
   if (renderModeRowEl) {
-    renderModeRowEl.classList.toggle('hidden', settings.catBreed === 'dafeiyu');
+    renderModeRowEl.classList.toggle('hidden', is2DOnlyBreed(settings.catBreed));
   }
   const collarRowEl = document.getElementById('collar-row');
   if (collarRowEl) {
-    collarRowEl.classList.toggle('hidden', renderMode === '2d' || settings.catBreed === 'dafeiyu');
+    collarRowEl.classList.toggle('hidden', renderMode === '2d' || is2DOnlyBreed(settings.catBreed));
   }
 
   const headphoneMode =
@@ -300,8 +300,9 @@ function syncUI(): void {
   });
   const headphoneRowEl = document.getElementById('headphone-row');
   if (headphoneRowEl) {
-    headphoneRowEl.classList.toggle('hidden', settings.catBreed === 'dafeiyu');
+    headphoneRowEl.classList.toggle('hidden', is2DOnlyBreed(settings.catBreed));
   }
+  document.getElementById('tail-mode-row')?.classList.toggle('hidden', settings.catBreed === 'naiwa');
 
   const headerEl = document.getElementById('menu-header');
   if (headerEl && activeCat) {
@@ -392,7 +393,7 @@ async function copyObsUrl(): Promise<void> {
       hint.classList.add('copied');
       setTimeout(() => {
         hint.classList.remove('copied');
-        hint.textContent = settings.obsEnabled ? `:${settings.obsPort || 27421}` : t('menu.obs_hint');
+        hint.textContent = settings.obsEnabled ? `:${settings.obsPort || 27431}` : t('menu.obs_hint');
       }, 2000);
     }
   } catch (err) {
@@ -661,14 +662,14 @@ async function bootstrap(): Promise<void> {
     if (params.get('obs') === '1') settings.obsEnabled = true;
     const qTab = params.get('tab');
     if (qTab === 'appearance' || qTab === 'system') activeTab = qTab;
-    // Populate all 7 built-in cats for realistic layout verification outside Tauri
+    // Populate all built-in characters for layout verification outside Tauri
     catList = [
       ...DEFAULT_BUILTIN_CATS.slice(0, 2),
       { ...DEFAULT_BUILTIN_CATS[0], id: 'orange-tabby', name: '大橘猫', emoji: '🍊', accentColor: '#ff9f43' },
       { ...DEFAULT_BUILTIN_CATS[0], id: 'calico', name: '三花猫', emoji: '🌸', accentColor: '#ff7eb3' },
       { ...DEFAULT_BUILTIN_CATS[0], id: 'tuxedo', name: '奶牛猫', emoji: '🐄', accentColor: '#d0d7de' },
       { ...DEFAULT_BUILTIN_CATS[0], id: 'siamese', name: '暹罗猫', emoji: '☕', accentColor: '#c9a679' },
-      DEFAULT_BUILTIN_CATS[2],
+      ...DEFAULT_BUILTIN_CATS.slice(2),
     ];
   }
   syncUI();

@@ -8,12 +8,14 @@ import {
   resolveKeyByVk,
 } from './keyboardLayout';
 import { catAudio } from './audio';
-import { resolveCustomSkin, type CatSkinConfig, type ResolvedSkin } from './catSkins';
+import { NAILONG_SKIN, NAIWA_SKIN, resolveCustomSkin, type CatSkinConfig, type ResolvedSkin } from './catSkins';
 import { DaFeiYuRenderer, type DaFeiYuLayout } from './dafeiyuRenderer';
+import { drawNailongArm, drawNailongBody, drawNailongTail } from './nailongRenderer';
+import { NaiwaRenderer } from './naiwaRenderer';
 
 export const LOGICAL_W = 420;
 export const LOGICAL_H = 440;
-export type CatBreed = 'black' | 'ragdoll' | 'dafeiyu';
+export type CatBreed = 'black' | 'ragdoll' | 'dafeiyu' | 'nailong' | 'naiwa';
 export type KeyboardOrientation = 'cat' | 'viewer';
 export type TailKeyMode = 'smart' | 'custom' | 'edge' | 'off';
 
@@ -254,6 +256,7 @@ export class KuroCatEngine {
   private renderScale = 1.0;
   private embedded = false;
   private dafeiyu = new DaFeiYuRenderer();
+  private naiWa = new NaiwaRenderer();
   private catTail = {
     heldVks: new Set<number>(),
     targetX: 320,
@@ -508,7 +511,7 @@ export class KuroCatEngine {
     prevAnyKeyAt: number,
     now: number,
   ): boolean {
-    if (this.tailKeyMode === 'off') return false;
+    if (this.catBreed === 'naiwa' || this.tailKeyMode === 'off') return false;
     if (this.tailKeyMode === 'custom') {
       return this.tailKeyIdSet.has(spec.id);
     }
@@ -558,6 +561,7 @@ export class KuroCatEngine {
 
   private syncLayoutPositions(): void {
     const isBigFish = this.catBreed === 'dafeiyu';
+    const isNaiwa = this.catBreed === 'naiwa';
     if (this.keyboardLayout === '108') {
       this.logicalW = 540;
       this.logicalH = 456;
@@ -565,12 +569,12 @@ export class KuroCatEngine {
       this.catTopY = 66;
       this.catBaseY = 292;
       this.kbCenterX = 290;
-      this.kbCenterY = 356;
+      this.kbCenterY = isNaiwa ? 304 : 356;
       this.kbWidth = 398;
       this.kbHeight = 96;
       this.kbTiltRad = (2.4 * Math.PI) / 180;
-      this.mouseBaseX = isBigFish ? 54 : 46;
-      this.mouseBaseY = isBigFish ? 332 : 342;
+      this.mouseBaseX = isNaiwa ? 61 : isBigFish ? 54 : 46;
+      this.mouseBaseY = isNaiwa ? 285 : isBigFish ? 332 : 342;
     } else {
       this.logicalW = 420;
       this.logicalH = 440;
@@ -578,16 +582,17 @@ export class KuroCatEngine {
       this.catTopY = 82;
       this.catBaseY = 308;
       this.kbCenterX = isBigFish ? 234 : 214;
-      this.kbCenterY = 353;
+      this.kbCenterY = isNaiwa ? 318 : 353;
       this.kbWidth = 266;
       this.kbHeight = 74;
       this.kbTiltRad = (3.4 * Math.PI) / 180;
-      this.mouseBaseX = isBigFish ? 72 : 54;
-      this.mouseBaseY = isBigFish ? 322 : 334;
+      this.mouseBaseX = isNaiwa ? 64 : isBigFish ? 72 : 54;
+      this.mouseBaseY = isNaiwa ? 294 : isBigFish ? 322 : 334;
     }
   }
 
   public setCatAppearance(breedId: string, skin?: CatSkinConfig | null): void {
+    if (breedId === 'naiwa' && this.catBreed !== 'naiwa') this.naiWa.reset();
     if (breedId !== 'dafeiyu' && this.catBreed === 'dafeiyu') {
       this.dafeiyu.releaseSprites();
     }
@@ -595,6 +600,9 @@ export class KuroCatEngine {
       this.catBreed = 'dafeiyu';
       this.customSkin = null;
       catAudio.setPurrIntensity(0);
+    } else if (breedId === 'nailong' || breedId === 'naiwa') {
+      this.catBreed = breedId;
+      this.customSkin = resolveCustomSkin(skin ?? (breedId === 'naiwa' ? NAIWA_SKIN : NAILONG_SKIN));
     } else if ((breedId === 'black' || breedId === 'ragdoll') && (!skin || skin.builtin)) {
       this.catBreed = breedId;
       this.customSkin = null;
@@ -2373,19 +2381,16 @@ export class KuroCatEngine {
       return;
     }
 
-    // Layer 1: Mini mouse & mechanical keyboard (both hop organically on grumpy tail desk-slam!)
-    this.drawMiniMouse(ctx);
-    this.drawKeyboard(ctx);
-
-    // Layer 2: Plush cat tail (above keyboard so near-tail key pats & angry desk-thumps land cleanly, yet tucked behind hip!)
-    this.drawTail(ctx);
-
-    // Layer 3: Exact measured spine-deformable cat silhouette (ears, cheeks, neck, pear belly, grounded hind feet, eyes & tiny whiskers)
-    this.drawCatBody(ctx, breath, purrShift);
-
-    // Layer 4: True-scale velvety cat paws (tapered idle legs / planted diagonal mouse support leg / bent curled chest paw / plump round poking paw!)
-    this.drawPaw(ctx, this.leftPaw, breath);
-    this.drawPaw(ctx, this.rightPaw, breath);
+    if (this.catBreed === 'naiwa') {
+      this.drawNaiwaPose(ctx, breath);
+    } else {
+      this.drawMiniMouse(ctx);
+      this.drawKeyboard(ctx);
+      this.drawTail(ctx);
+      this.drawCatBody(ctx, breath, purrShift);
+      this.drawPaw(ctx, this.leftPaw, breath);
+      this.drawPaw(ctx, this.rightPaw, breath);
+    }
 
     // Layer 4.5: Alive cat comic FX (anger 💢 mark, tail-slam starburst & dust puffs, sleepy Zzz bubbles)
     this.drawCatAliveFx(ctx, performance.now(), breath);
@@ -2397,6 +2402,33 @@ export class KuroCatEngine {
     }
 
     ctx.restore();
+  }
+
+  private drawNaiwaPose(ctx: CanvasRenderingContext2D, breath: number): void {
+    const base = this.spinePoint(1, breath);
+    const blink = this.isBlinking ? 1 - Math.abs(this.blinkProgress - 1) : 0;
+    const click = Math.max(this.mouseLeftPress, this.mouseRightPress, this.mouseMiddlePress);
+    const arm = (paw: PawState) => ({
+      hand: paw.pos,
+      reach: !this.privacyMode && (paw.mode === 'poke' || paw.mode === 'mouse') ? paw.target : null,
+      activity: this.privacyMode ? 0 : Math.max(0, 1 - paw.idleWeight - paw.curlWeight * 0.84),
+    });
+    this.naiWa.draw(ctx, {
+      base: { x: base.x, y: base.y + 17 },
+      width: this.logicalW,
+      tilt: this.headTilt,
+      breath,
+      sleep: this.sleepAmount,
+      dt: this.lastDt,
+      gaze: { x: this.eyeLookX, y: this.eyeLookY },
+      eyelid: Math.max(blink, this.privacyClose, this.sleepAmount, this.squintAmount * 0.85),
+      joy: this.privacyMode ? 0 : Math.min(1, Math.max(this.petEnergy, this.typingEnergy * 0.72, click * 0.50)),
+      leftArm: arm(this.leftPaw),
+      rightArm: arm(this.rightPaw),
+    }, () => {
+      this.drawMiniMouse(ctx);
+      this.drawKeyboard(ctx);
+    });
   }
 
   private onTailDeskSlam(now: number): void {
@@ -2539,14 +2571,15 @@ export class KuroCatEngine {
     const gentleDrift = Math.sin(this.elapsed * (0.9 + this.typingEnergy * 1.4)) * swayAmp;
     const hipRight = this.spinePoint(0.84, 0);
 
-    const startX = hipRight.x + 56;
+    const isNailong = this.catBreed === 'nailong';
+    const startX = hipRight.x + (isNailong ? 47 : 56);
     const startY = hipRight.y - 2 + this.sleepAmount * 14;
     let restCp1X = startX + 34;
     let restCp1Y = startY + 4 + gentleDrift * 0.25;
     let restCp2X = startX + 38;
     let restCp2Y = startY - 34 + gentleDrift * 0.45;
-    let restEndX = startX + 70 + gentleDrift * 0.35 + tailFlick * 0.4;
-    let restEndY = startY - 35 + gentleDrift + tailFlick + curiousTwitch;
+    let restEndX = startX + (isNailong ? 56 : 70) + gentleDrift * 0.35 + tailFlick * 0.4;
+    let restEndY = startY - (isNailong ? 28 : 35) + gentleDrift + tailFlick + curiousTwitch;
 
     // Sleepy cozy curl: tucks low and forward beside the cat's hip
     if (this.sleepAmount > 0.01) {
@@ -2639,6 +2672,12 @@ export class KuroCatEngine {
         );
         ctx.fill();
       }
+    }
+
+    if (isNailong) {
+      drawNailongTail(ctx, { x: startX, y: startY }, { x: cp1X, y: cp1Y }, { x: endX, y: endY });
+      ctx.restore();
+      return;
     }
 
     if (this.customSkin) {
@@ -2815,6 +2854,19 @@ export class KuroCatEngine {
   }
 
   private drawCatBody(ctx: CanvasRenderingContext2D, breath: number, purrShift: number): void {
+    if (this.catBreed === 'nailong') {
+      const blink = this.isBlinking ? 1 - Math.abs(this.blinkProgress - 1) : 0;
+      drawNailongBody(ctx, {
+        head: this.spinePoint(0.29, breath),
+        body: this.spinePoint(0.72, breath),
+        tilt: this.headTilt,
+        sleep: this.sleepAmount,
+        eyelid: Math.max(blink, this.squintAmount * 0.83, this.privacyClose, this.sleepAmount),
+        gaze: { x: this.eyeLookX, y: this.eyeLookY },
+        joy: Math.min(1, Math.max(this.petEnergy, this.typingEnergy)),
+      });
+      return;
+    }
     if (this.customSkin) {
       this.drawCustomCatBody(ctx, this.customSkin, breath, purrShift);
       return;
@@ -4252,6 +4304,21 @@ export class KuroCatEngine {
   }
 
   private drawPaw(ctx: CanvasRenderingContext2D, paw: PawState, breath: number): void {
+    if (this.catBreed === 'nailong') {
+      const shoulder = this.getLiveShoulder(paw, breath);
+      const side = paw.side === 'left' ? -1 : 1;
+      const armActivity = 1 - paw.idleWeight;
+      const restX = shoulder.x + side * 19;
+      const restY = shoulder.y + 31;
+      const clickDip = paw.mode === 'mouse'
+        ? Math.max(this.mouseLeftPress, this.mouseRightPress, this.mouseMiddlePress) * 2
+        : 0;
+      drawNailongArm(ctx, shoulder, {
+        x: restX + (paw.pos.x - restX) * armActivity,
+        y: restY + (paw.pos.y + clickDip - restY) * armActivity,
+      }, paw.impactSquash);
+      return;
+    }
     // 1) Seated idle vertical front legs (EXACT 4 clean lines of ORIG 0.3s!) OR planted diagonal supporting leg (ORIG 2.2s!)
     if (paw.idleWeight > 0.05) {
       ctx.save();

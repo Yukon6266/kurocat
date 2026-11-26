@@ -272,6 +272,34 @@ export function resolveCustomSkin(raw: CatSkinConfig): ResolvedSkin {
   };
 }
 
+export function is2DOnlyBreed(id?: string): boolean {
+  return id === 'dafeiyu' || id === 'nailong' || id === 'naiwa';
+}
+
+export const DEFAULT_DESKTOP_PET = import.meta.env.VITE_DESKTOP_PET === 'naiwa' ? 'naiwa' : 'nailong';
+
+export const NAILONG_SKIN: CatSkinConfig = {
+  id: 'nailong',
+  name: '奶龙',
+  emoji: '🦖',
+  builtin: true,
+  furColor: '#ffd13f',
+  eyeColorTop: '#567633',
+  accentColor: '#ffd763',
+  accentSideColor: '#de952b',
+};
+
+export const NAIWA_SKIN: CatSkinConfig = {
+  id: 'naiwa',
+  name: '奶蛙',
+  emoji: '🐸',
+  builtin: true,
+  furColor: '#f5cc5b',
+  eyeColorTop: '#9cbf64',
+  accentColor: '#cbdc86',
+  accentSideColor: '#7d9c57',
+};
+
 export const DEFAULT_BUILTIN_CATS: CatSkinConfig[] = [
   {
     id: 'black',
@@ -303,4 +331,6 @@ export const DEFAULT_BUILTIN_CATS: CatSkinConfig[] = [
     accentColor: '#5cc8ff',
     accentSideColor: '#2563eb',
   },
+  NAILONG_SKIN,
+  NAIWA_SKIN,
 ];

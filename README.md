@@ -1,5 +1,22 @@
 # 🐈‍⬛ KuroCat — Open-Source Desktop Typing Cat Pet · 桌面打字小黑猫伴侣
 
+## 奶蛙桌宠 · macOS 测试版
+
+这个分支基于 KuroCat v5.1.2，加入会眨眼、跟随鼠标、屈肘打字和打盹的奶蛙桌宠。软件内置奶蛙素材，可以和原版 KuroCat 独立运行。
+
+在本仓库的 [Releases](https://github.com/Yukon6266/kurocat/releases) 下载通用 DMG，支持 Apple 芯片和 Intel Mac。打开 DMG，把奶蛙桌宠拖到「应用程序」。测试包采用本地签名，首次启动如果被 macOS 拦截，确认来源后可以在「系统设置 → 隐私与安全性」选择「仍要打开」。全局键鼠联动需要为奶蛙开启「辅助功能」和「输入监控」。 [Apple 官方说明](https://support.apple.com/zh-cn/102445)
+
+想从源码构建时，在 Mac 上准备 Node.js、Rust 稳定版和 Xcode Command Line Tools，然后运行以下命令。
+
+```sh
+npm ci
+npm run tauri:build:naiwa -- --bundles app
+```
+
+基于 [KuroCat](https://github.com/qianyiai/kurocat) 开发，奶蛙素材来自 [奶蛙艺术圣殿](https://github.com/Orliss/nailong)。素材署名和使用说明随应用附带。 [素材说明](./src/assets/naiwa/NOTICE.txt)
+
+下方为 KuroCat 上游项目说明。
+
 <p align="center">
   <strong>🇨🇳 简体中文</strong> &nbsp;|&nbsp;
   <a href="./README.en.md">🇺🇸 English</a> &nbsp;|&nbsp;

@@ -10,7 +10,7 @@ import {
 } from './catEngine';
 import { catAudio } from './audio';
 import { AgentCompanionController, type AgentCompanionEvent } from './agentCompanion';
-import { DEFAULT_BUILTIN_CATS, type CatSkinConfig } from './catSkins';
+import { DEFAULT_BUILTIN_CATS, DEFAULT_DESKTOP_PET, is2DOnlyBreed, type CatSkinConfig } from './catSkins';
 import {
   getKeyboardLayout,
   resolveKeyByVk,
@@ -141,9 +141,9 @@ let settings: AppSettings = {
   showKeyBubbles: true,
   soundEnabled: true,
   autostart: false,
-  catBreed: 'black',
-  mcpEnabled: true,
-  mcpPort: 27420,
+  catBreed: DEFAULT_DESKTOP_PET,
+  mcpEnabled: false,
+  mcpPort: DEFAULT_DESKTOP_PET === 'naiwa' ? 27440 : 27430,
   keyboardLayout: '65',
   keyboardOrientation: 'cat',
   privacyPasswordGuard: true,
@@ -290,7 +290,7 @@ function schedule3dDisposeIf2D(): void {
 }
 
 function shouldWearHeadphonesNow(): boolean {
-  if (settings.catBreed === 'dafeiyu') return false;
+  if (is2DOnlyBreed(settings.catBreed)) return false;
   const hm: HeadphoneMode =
     settings.headphoneMode === 'auto' || settings.headphoneMode === 'on'
       ? settings.headphoneMode
@@ -303,7 +303,7 @@ function shouldWearHeadphonesNow(): boolean {
 function wants3DNow(): boolean {
   return (
     settings.renderMode !== '2d' &&
-    settings.catBreed !== 'dafeiyu' &&
+    !is2DOnlyBreed(settings.catBreed) &&
     !tailPickerOpen &&
     !isWin7Ulw &&
     !webgl3dUnavailable
@@ -536,11 +536,11 @@ function syncMenuUI(): void {
   });
   const renderModeRowEl = document.getElementById('render-mode-row');
   if (renderModeRowEl) {
-    renderModeRowEl.classList.toggle('hidden', settings.catBreed === 'dafeiyu');
+    renderModeRowEl.classList.toggle('hidden', is2DOnlyBreed(settings.catBreed));
   }
   const collarRowEl = document.getElementById('collar-row');
   if (collarRowEl) {
-    collarRowEl.classList.toggle('hidden', renderMode === '2d' || settings.catBreed === 'dafeiyu');
+    collarRowEl.classList.toggle('hidden', renderMode === '2d' || is2DOnlyBreed(settings.catBreed));
   }
 
   const headphoneMode: HeadphoneMode =
@@ -552,8 +552,9 @@ function syncMenuUI(): void {
   });
   const headphoneRowEl = document.getElementById('headphone-row');
   if (headphoneRowEl) {
-    headphoneRowEl.classList.toggle('hidden', settings.catBreed === 'dafeiyu');
+    headphoneRowEl.classList.toggle('hidden', is2DOnlyBreed(settings.catBreed));
   }
+  document.getElementById('tail-mode-row')?.classList.toggle('hidden', settings.catBreed === 'naiwa');
 
   const headerEl = document.getElementById('menu-header');
   if (headerEl && activeCat) {
@@ -656,6 +657,7 @@ async function openTailPicker(): Promise<void> {
   tailPickerLoading = true;
   try {
     settings = await invoke<AppSettings>('get_settings');
+    if (settings.catBreed === 'naiwa') return;
     tailPickerSelection = new Set(settings.tailKeyIds ?? DEFAULT_TAIL_KEY_IDS);
     tailPickerStatusOverride = null;
     tailPickerOpen = true;
@@ -1021,6 +1023,7 @@ async function triggerManualUpdateCheck(): Promise<void> {
 }
 
 async function bootstrap(): Promise<void> {
+  engine.setCatAppearance(settings.catBreed, catList.find((cat) => cat.id === settings.catBreed));
   engine.start();
 
   // Hide Windows-only desktop shortcut button on macOS

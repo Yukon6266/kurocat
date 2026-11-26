@@ -25,7 +25,7 @@ fn default_opacity() -> f64 {
     0.85
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CatSkinConfig {
     pub id: String,
@@ -528,6 +528,28 @@ pub fn builtin_cats() -> Vec<CatSkinConfig> {
             eye_squint: None,
             body_chubbiness: None,
             spots: vec![],
+        },
+        CatSkinConfig {
+            id: "nailong".to_string(),
+            name: "奶龙".to_string(),
+            emoji: Some("🦖".to_string()),
+            builtin: true,
+            fur_color: "#ffd13f".to_string(),
+            eye_color_top: "#567633".to_string(),
+            accent_color: Some("#ffd763".to_string()),
+            accent_side_color: Some("#de952b".to_string()),
+            ..CatSkinConfig::default()
+        },
+        CatSkinConfig {
+            id: "naiwa".to_string(),
+            name: "奶蛙".to_string(),
+            emoji: Some("🐸".to_string()),
+            builtin: true,
+            fur_color: "#f5cc5b".to_string(),
+            eye_color_top: "#9cbf64".to_string(),
+            accent_color: Some("#cbdc86".to_string()),
+            accent_side_color: Some("#7d9c57".to_string()),
+            ..CatSkinConfig::default()
         },
     ]
 }

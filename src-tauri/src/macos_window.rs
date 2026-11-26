@@ -78,9 +78,10 @@ fn with_native_window<T>(
 fn bottom_right_frame(visible: NSRect, size: NSSize) -> NSRect {
     const RIGHT_MARGIN: f64 = 28.0;
     const BOTTOM_MARGIN: f64 = 16.0;
+    let companion_offset = if cfg!(feature = "naiwa") { size.width + 12.0 } else { 0.0 };
     NSRect::new(
         NSPoint::new(
-            (visible.origin.x + visible.size.width - size.width - RIGHT_MARGIN)
+            (visible.origin.x + visible.size.width - size.width - RIGHT_MARGIN - companion_offset)
                 .max(visible.origin.x),
             visible.origin.y + BOTTOM_MARGIN,
         ),
@@ -296,7 +297,8 @@ mod tests {
     fn corners_use_global_appkit_coordinates() {
         let visible = NSRect::new(NSPoint::new(-2304.0, 120.0), NSSize::new(2304.0, 1250.0));
         let frame = bottom_right_frame(visible, NSSize::new(260.0, 410.0));
-        assert_eq!(frame.origin, NSPoint::new(-288.0, 136.0));
+        let expected_x = if cfg!(feature = "naiwa") { -560.0 } else { -288.0 };
+        assert_eq!(frame.origin, NSPoint::new(expected_x, 136.0));
     }
 
     #[test]

@@ -3,12 +3,27 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+const APP_DATA_FOLDER: &str = if cfg!(feature = "naiwa") {
+    "naiwa-desktop-pet"
+} else {
+    "nailong-desktop-pet"
+};
+pub const USE_UPSTREAM_UPDATES: bool = false;
+pub const DEFAULT_MCP_PORT: u16 = if cfg!(feature = "naiwa") { 27440 } else { 27430 };
+pub const DEFAULT_OBS_PORT: u16 = if cfg!(feature = "naiwa") { 27441 } else { 27431 };
+#[cfg(target_os = "macos")]
+pub const APP_IDENTIFIER: &str = if cfg!(feature = "naiwa") {
+    "com.naiwadesktop.pet"
+} else {
+    "com.nailongdesktop.pet"
+};
+
 fn default_cat_breed() -> String {
-    "black".to_string()
+    if cfg!(feature = "naiwa") { "naiwa" } else { "nailong" }.into()
 }
 
 fn default_mcp_enabled() -> bool {
-    true
+    false
 }
 
 fn default_privacy_password_guard() -> bool {
@@ -16,7 +31,7 @@ fn default_privacy_password_guard() -> bool {
 }
 
 fn default_mcp_port() -> u16 {
-    27420
+    DEFAULT_MCP_PORT
 }
 
 fn default_obs_enabled() -> bool {
@@ -24,7 +39,7 @@ fn default_obs_enabled() -> bool {
 }
 
 fn default_obs_port() -> u16 {
-    27421
+    DEFAULT_OBS_PORT
 }
 
 fn default_obs_hide_pet() -> bool {
@@ -250,7 +265,7 @@ pub fn app_data_dir() -> PathBuf {
         let base = std::env::var("APPDATA")
             .map(PathBuf::from)
             .unwrap_or_else(|_| PathBuf::from("."));
-        base.join("kuro-cat-pet")
+        base.join(APP_DATA_FOLDER)
     }
     #[cfg(target_os = "macos")]
     {
@@ -259,14 +274,14 @@ pub fn app_data_dir() -> PathBuf {
             .unwrap_or_else(|_| PathBuf::from("."));
         home.join("Library")
             .join("Application Support")
-            .join("kuro-cat-pet")
+            .join(APP_DATA_FOLDER)
     }
     #[cfg(all(not(windows), not(target_os = "macos")))]
     {
         let home = std::env::var("HOME")
             .map(PathBuf::from)
             .unwrap_or_else(|_| PathBuf::from("."));
-        home.join(".config").join("kuro-cat-pet")
+        home.join(".config").join(APP_DATA_FOLDER)
     }
 }
 
@@ -383,7 +398,7 @@ pub fn set_windows_autostart(enabled: bool) -> Result<(), String> {
 pub fn set_windows_autostart(enabled: bool) -> Result<(), String> {
     let home = std::env::var("HOME").map_err(|e| e.to_string())?;
     let agents_dir = PathBuf::from(home).join("Library").join("LaunchAgents");
-    let plist_path = agents_dir.join("com.kurocat.pet.plist");
+    let plist_path = agents_dir.join(format!("{APP_IDENTIFIER}.plist"));
 
     if enabled {
         fs::create_dir_all(&agents_dir).map_err(|e| e.to_string())?;
@@ -397,7 +412,7 @@ pub fn set_windows_autostart(enabled: bool) -> Result<(), String> {
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.kurocat.pet</string>
+    <string>{APP_IDENTIFIER}</string>
     <key>ProgramArguments</key>
     <array>
         <string>{}</string>

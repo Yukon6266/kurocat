@@ -392,7 +392,7 @@ fn get_mcp_config() -> String {
 fn get_agent_hooks_config(state: State<'_, AppState>) -> String {
     let (port, lang) = {
         let s = state.settings.lock().unwrap();
-        (if s.mcp_port == 0 { 27420 } else { s.mcp_port }, s.language.clone())
+        (if s.mcp_port == 0 { crate::config::DEFAULT_MCP_PORT } else { s.mcp_port }, s.language.clone())
     };
     let exe = std::env::current_exe()
         .map(|p| p.to_string_lossy().to_string())
@@ -537,10 +537,10 @@ fn update_settings(app: AppHandle, state: State<'_, AppState>, mut patch: AppSet
         "black".to_string()
     };
     if patch.mcp_port == 0 {
-        patch.mcp_port = 27420;
+        patch.mcp_port = crate::config::DEFAULT_MCP_PORT;
     }
     if patch.obs_port == 0 {
-        patch.obs_port = 27421;
+        patch.obs_port = crate::config::DEFAULT_OBS_PORT;
     }
     if !patch.obs_enabled {
         patch.obs_hide_pet = false;
@@ -1811,7 +1811,17 @@ fn win_wait_for_previous_pid_if_requested() -> bool {
     waited
 }
 
-fn is_over_interactive_silhouette(rx: f64, ry: f64, is_108: bool) -> (bool, bool) {
+fn is_over_interactive_silhouette(rx: f64, ry: f64, is_108: bool, is_naiwa: bool) -> (bool, bool) {
+    if is_naiwa {
+        let (cx, radius, desk_top, desk_bottom) = if is_108 {
+            (0.52, 0.35, 0.54, 0.81)
+        } else {
+            (0.48, 0.31, 0.61, 0.84)
+        };
+        let over_pet = ((rx - cx) / radius).powi(2) + ((ry - 0.52) / 0.27).powi(2) <= 1.0;
+        let over_desk = (0.06..=0.93).contains(&rx) && (desk_top..=desk_bottom).contains(&ry);
+        return (over_pet || over_desk, over_pet);
+    }
     // Cat body/head oval centered around (0.48, 0.49) for 65% or (0.51, 0.48) for 108-key
     let (cat_cx, cat_rx) = if is_108 { (0.51, 0.21) } else { (0.48, 0.25) };
     let dx_cat = (rx - cat_cx) / cat_rx;
@@ -1977,12 +1987,13 @@ fn start_hit_test_loop(
             let rx = (cx - win_x) as f64 / w;
             let ry = (cy - win_y) as f64 / h;
             let inside = rx >= 0.0 && rx <= 1.0 && ry >= 0.0 && ry <= 1.0;
-            let (locked, always_on_top, is_108, cur_scale) = {
+            let (locked, always_on_top, is_108, is_naiwa, cur_scale) = {
                 let s = settings.lock().unwrap();
                 (
                     s.click_through_locked,
                     s.always_on_top,
                     s.keyboard_layout == "108",
+                    s.cat_breed == "naiwa",
                     s.scale.clamp(0.20, 1.50),
                 )
             };
@@ -2102,7 +2113,7 @@ fn start_hit_test_loop(
             let inside_pet = pet_rx >= 0.0 && pet_rx <= 1.0 && pet_ry >= 0.0 && pet_ry <= 1.0;
 
             let (over_interactive, raw_over_cat) = if inside_pet {
-                is_over_interactive_silhouette(pet_rx, pet_ry, is_108)
+                is_over_interactive_silhouette(pet_rx, pet_ry, is_108, is_naiwa)
             } else {
                 (false, false)
             };
@@ -2798,6 +2809,9 @@ pub fn run() {
             }
 
             if let Some(win) = app.get_webview_window("main") {
+                if cfg!(feature = "naiwa") {
+                    let _ = win.set_title("奶蛙桌宠");
+                }
                 #[cfg(target_os = "linux")]
                 {
                     // On X11, `resizable: false` in tauri.conf.json sets fixed min==max WM size hints,
@@ -2912,7 +2926,7 @@ pub fn run() {
 
             let http_handle = handle.clone();
             let agent_handle = handle.clone();
-            let mcp_port = if s.mcp_port == 0 { 27420 } else { s.mcp_port };
+            let mcp_port = if s.mcp_port == 0 { crate::config::DEFAULT_MCP_PORT } else { s.mcp_port };
             mcp::start_http_mcp_server(
                 mcp_port,
                 mcp_for_setup,

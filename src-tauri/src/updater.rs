@@ -674,6 +674,9 @@ fn fetch_latest_release_json() -> Result<String, String> {
 }
 
 pub fn check_latest_update() -> Result<UpdateInfo, String> {
+    if !crate::config::USE_UPSTREAM_UPDATES {
+        return Err("奶龙桌宠本地版关闭了 KuroCat 上游更新。".to_string());
+    }
     let raw_json = fetch_latest_release_json()?;
     let rel: GhRelease = serde_json::from_str(&raw_json)
         .map_err(|e| format!("解析最新版本信息失败: {}", e))?;
@@ -1100,6 +1103,9 @@ fn install_macos_update(app: &AppHandle, info: &UpdateInfo) -> Result<(), String
 }
 
 pub fn perform_update_install(app: &AppHandle, info: UpdateInfo) -> Result<(), String> {
+    if !crate::config::USE_UPSTREAM_UPDATES {
+        return Err("奶龙桌宠本地版关闭了 KuroCat 上游更新。".to_string());
+    }
     if !info.has_update {
         emit_progress(
             app,
@@ -1135,6 +1141,9 @@ pub fn perform_update_install(app: &AppHandle, info: UpdateInfo) -> Result<(), S
 }
 
 pub fn start_background_update_checker(app: AppHandle) {
+    if !crate::config::USE_UPSTREAM_UPDATES {
+        return;
+    }
     std::thread::spawn(move || {
         // Gentle initial delay after launch so startup stays instant & quiet
         std::thread::sleep(std::time::Duration::from_secs(8));

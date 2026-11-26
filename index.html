@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>KuroCat</title>
+    <title>奶龙桌宠</title>
   </head>
   <body>
     <canvas id="pet-canvas"></canvas>
@@ -126,7 +126,7 @@
           <button class="kb-pill" data-kborient="viewer" data-i18n="menu.kb_viewer">面向观众</button>
         </div>
       </div>
-      <div class="menu-scale-row">
+      <div class="menu-scale-row" id="tail-mode-row">
         <div class="scale-header">
           <span class="menu-scale-label" data-i18n="menu.tail_label">尾巴拍键模式</span>
           <span class="tail-mode-badge" id="tail-mode-badge">智能第三只手</span>
@@ -186,10 +186,6 @@
       </button>
       <button class="menu-item" data-action="reset-pos">
         <span data-i18n="menu.reset_pos">重置位置到右下角</span>
-      </button>
-      <button class="menu-item" data-action="check-update" id="btn-check-update">
-        <span id="update-btn-label">检查更新</span>
-        <span class="menu-hint" id="update-hint">v5.1.2</span>
       </button>
       <button class="menu-item danger" data-action="quit">
         <span data-i18n="menu.quit">退出 KuroCat</span>

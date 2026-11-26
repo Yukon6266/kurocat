@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "KuroCat",
+  "productName": "Nailong",
   "version": "5.1.2",
-  "identifier": "com.kurocat.pet",
+  "identifier": "com.nailongdesktop.pet",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -15,7 +15,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "KuroCat",
+        "title": "奶龙桌宠",
         "width": 420,
         "height": 440,
         "resizable": false,
@@ -36,12 +36,15 @@
     "active": true,
     "targets": "all",
     "publisher": "KuroCat",
-    "shortDescription": "Minimalist desktop cat typing & mouse companion",
+    "shortDescription": "Nailong desktop typing companion based on KuroCat",
+    "resources": {
+      "../src/assets/naiwa/NOTICE.txt": "naiwa-credits.txt"
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
-      "icons/icon.icns",
+      "icons/nailong.icns",
       "icons/icon.ico"
     ],
     "windows": {

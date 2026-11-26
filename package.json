@@ -12,7 +12,8 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "tauri:build": "tauri build",
+    "tauri:build:naiwa": "tauri build --features naiwa --config src-tauri/tauri.naiwa.conf.json"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.2.0",

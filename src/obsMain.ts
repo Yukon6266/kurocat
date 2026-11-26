@@ -6,7 +6,7 @@ import {
 } from './catEngine';
 import { catAudio } from './audio';
 import { AgentCompanionController, type AgentCompanionEvent } from './agentCompanion';
-import { DEFAULT_BUILTIN_CATS, type CatSkinConfig } from './catSkins';
+import { DEFAULT_BUILTIN_CATS, DEFAULT_DESKTOP_PET, is2DOnlyBreed, type CatSkinConfig } from './catSkins';
 import type { KeyboardLayoutId } from './keyboardLayout';
 import type { CollarColorId, KuroCatEngine3D } from './catEngine3d';
 
@@ -101,7 +101,7 @@ let catList: CatSkinConfig[] = [...DEFAULT_BUILTIN_CATS];
 let currentSettings: ObsAppSettings = {
   scale: 1,
   showKeyBubbles: true,
-  catBreed: 'black',
+  catBreed: DEFAULT_DESKTOP_PET,
   keyboardLayout: '65',
   keyboardOrientation: 'cat',
   tailKeyMode: 'smart',
@@ -112,7 +112,7 @@ let currentSettings: ObsAppSettings = {
 };
 
 function computeObsHeadphonesOn(activeCat: CatSkinConfig | undefined): boolean {
-  if (activeCat?.id === 'dafeiyu') return false;
+  if (is2DOnlyBreed(activeCat?.id)) return false;
   const hm: ObsHeadphoneMode =
     overrideHeadphones ||
     (currentSettings.headphoneMode === 'auto' || currentSettings.headphoneMode === 'on'
@@ -133,7 +133,7 @@ function syncObs3D(
   tailIds: string[],
   showBubbles: boolean,
 ): void {
-  const want3d = mode === '3d' && activeCat?.id !== 'dafeiyu' && !webglBlocked;
+  const want3d = mode === '3d' && !is2DOnlyBreed(activeCat?.id) && !webglBlocked;
   if (!want3d) {
     if (active3d) {
       engine3d?.stop();

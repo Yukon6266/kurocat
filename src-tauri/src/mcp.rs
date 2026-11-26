@@ -454,7 +454,7 @@ pub fn parse_hook_payload(
 }
 
 fn post_loopback_json(port: u16, path: &str, payload: &Value) -> bool {
-    let actual_port = if port == 0 { 27420 } else { port };
+    let actual_port = if port == 0 { crate::config::DEFAULT_MCP_PORT } else { port };
     let addr = SocketAddr::from(([127, 0, 0, 1], actual_port));
     let Ok(mut stream) = TcpStream::connect_timeout(&addr, Duration::from_millis(200)) else {
         return false;

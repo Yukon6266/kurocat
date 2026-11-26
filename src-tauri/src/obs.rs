@@ -46,7 +46,7 @@ impl Drop for ClientGuard {
 }
 
 pub fn obs_url(port: u16) -> String {
-    let p = if port == 0 { 27421 } else { port };
+    let p = if port == 0 { crate::config::DEFAULT_OBS_PORT } else { port };
     format!("http://127.0.0.1:{}/obs", p)
 }
 
@@ -122,7 +122,7 @@ fn stop_locked(slot: &mut Option<ObsServerControl>) {
 
 /// Starts, stops, or restarts the local OBS Browser Source server to match `enabled` & `port`.
 pub fn sync_obs_server(app: &AppHandle, enabled: bool, port: u16) {
-    let actual_port = if port == 0 { 27421 } else { port };
+    let actual_port = if port == 0 { crate::config::DEFAULT_OBS_PORT } else { port };
     let mut slot = control_slot().lock().unwrap();
 
     if !enabled {

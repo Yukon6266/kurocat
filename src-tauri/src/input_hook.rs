@@ -1303,7 +1303,7 @@ pub mod macos_hook {
         }
     }
 
-    const MACOS_BUNDLE_ID: &str = "com.kurocat.pet";
+    const MACOS_BUNDLE_ID: &str = crate::config::APP_IDENTIFIER;
 
     fn current_macos_app_bundle() -> Option<std::path::PathBuf> {
         let exe = std::env::current_exe().ok()?;
